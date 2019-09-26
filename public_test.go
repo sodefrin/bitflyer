@@ -5,9 +5,13 @@ import (
 )
 
 func TestPublicAPI(t *testing.T) {
-	p := &PublicAPIClient{}
+	bf := NewBitflyer()
+	public, err := bf.GetPublicAPIClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	ticker, err := p.GetTicker("FX_BTC_JPY")
+	ticker, err := public.GetTicker("FX_BTC_JPY")
 	if err != nil {
 		t.Fatal(err)
 	}

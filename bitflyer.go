@@ -19,7 +19,7 @@ type RealtimeAPIClient struct {
 }
 
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
-	rpc, err := wsjsonrpc.NewJsonRPC(realtimeEndpoint, "", origin)
+	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
 	if err != nil {
 		return nil, err
 	}
