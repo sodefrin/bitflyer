@@ -1,6 +1,10 @@
 package bitflyer
 
-import "github.com/sodefrin/wsjsonrpc"
+import (
+	"sync"
+
+	"github.com/sodefrin/wsjsonrpc"
+)
 
 const (
 	endpoint         = "https://api.bitflyer.com"
@@ -15,7 +19,11 @@ func NewBitflyer() *Bitflyer {
 }
 
 type RealtimeAPIClient struct {
-	rpc *wsjsonrpc.JsonRPC
+	rpc         *wsjsonrpc.JsonRPC
+	boardMu     *sync.Mutex
+	board       *Board
+	executionMu *sync.Mutex
+	executions  []*Execution
 }
 
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
@@ -23,7 +31,14 @@ func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RealtimeAPIClient{rpc: rpc}, nil
+
+	return &RealtimeAPIClient{
+		rpc:         rpc,
+		boardMu:     &sync.Mutex{},
+		board:       &Board{bids: map[float64]float64{}, asks: map[float64]float64{}},
+		executionMu: &sync.Mutex{},
+		executions:  []*Execution{},
+	}, nil
 }
 
 type PublicAPIClient struct{}
