@@ -5,8 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
+
+	"github.com/sodefrin/wsjsonrpc"
 )
+
+type RealtimeAPIClient struct {
+	rpc         *wsjsonrpc.JsonRPC
+	boardMu     *sync.Mutex
+	board       *Board
+	executionMu *sync.Mutex
+	executions  []*Execution
+}
 
 var maxExecutions = 100000
 
@@ -175,7 +186,7 @@ func (r *RealtimeAPIClient) updateBoard(msg *boardMessage) error {
 func (r *RealtimeAPIClient) updateExecutions(msg []*Execution) error {
 	r.executionMu.Lock()
 	for _, v := range msg {
-		ts, err := parseBfTime(v.ExecDate)
+		ts, err := parseTimeString(v.ExecDate)
 		if err != nil {
 			return err
 		}
@@ -191,13 +202,4 @@ func (r *RealtimeAPIClient) updateExecutions(msg []*Execution) error {
 
 func (r *RealtimeAPIClient) Close() error {
 	return r.rpc.Close()
-}
-
-func parseBfTime(str string) (time.Time, error) {
-	tmp, err := time.Parse("2006-01-02T15:04:05", str[:19])
-	if err != nil {
-		return tmp, err
-	}
-	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
-	return tmp.In(jst), nil
 }

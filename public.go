@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type PublicAPIClient struct{}
+
 type Ticker struct {
 	ProductCode     string    `json:"product_code"`
 	Timestamp       time.Time `json:"timestamp"`

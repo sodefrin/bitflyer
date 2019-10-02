@@ -18,14 +18,6 @@ func NewBitflyer() *Bitflyer {
 	return &Bitflyer{}
 }
 
-type RealtimeAPIClient struct {
-	rpc         *wsjsonrpc.JsonRPC
-	boardMu     *sync.Mutex
-	board       *Board
-	executionMu *sync.Mutex
-	executions  []*Execution
-}
-
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
 	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
 	if err != nil {
@@ -41,15 +33,8 @@ func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
 	}, nil
 }
 
-type PublicAPIClient struct{}
-
 func (b *Bitflyer) GetPublicAPIClient() (*PublicAPIClient, error) {
 	return &PublicAPIClient{}, nil
-}
-
-type PrivateAPIClient struct {
-	key    string
-	secret string
 }
 
 func (b *Bitflyer) PrivateAPIClient(key, secret string) (*PrivateAPIClient, error) {
