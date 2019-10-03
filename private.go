@@ -45,14 +45,14 @@ func (p *PrivateAPIClient) CreateOrder(side string, price, size float64, typ str
 	return res.ChildOrderAcceptanceID, nil
 }
 
-type CancelChildOrderParams struct {
+type cancelChildOrderParams struct {
 	ProductCode            string `json:"product_code"`
 	ChildOrderID           string `json:"child_order_id,omitempty"`
 	ChildOrderAcceptanceID string `json:"child_order_acceptance_id,omitempty"`
 }
 
 func (p *PrivateAPIClient) CancelOrder(id string) error {
-	return p.post("/v1/me/cancelchildorder", &CancelChildOrderParams{
+	return p.post("/v1/me/cancelchildorder", &cancelChildOrderParams{
 		ProductCode:            "FX_BTC_JPY",
 		ChildOrderAcceptanceID: id,
 	}, nil)
