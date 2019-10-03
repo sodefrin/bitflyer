@@ -12,11 +12,13 @@ import (
 )
 
 type RealtimeAPIClient struct {
-	rpc         *wsjsonrpc.JsonRPC
-	boardMu     *sync.Mutex
-	board       *Board
-	executionMu *sync.Mutex
-	executions  []*Execution
+	rpc                 *wsjsonrpc.JsonRPC
+	boardMu             *sync.Mutex
+	board               *Board
+	executionMu         *sync.Mutex
+	executions          []*Execution
+	onBoardCallback     func(float64, []*Price, []*Price)
+	onExecutionCallback func([]*Execution)
 }
 
 var maxExecutions = 100000
@@ -73,9 +75,9 @@ type channelMessage struct {
 }
 
 type boardMessage struct {
-	MidPrice float64 `json:"mid_price"`
-	Bids     []Price `json:"bids"`
-	Asks     []Price `json:"asks"`
+	MidPrice float64  `json:"mid_price"`
+	Bids     []*Price `json:"bids"`
+	Asks     []*Price `json:"asks"`
 }
 
 type Price struct {
@@ -127,6 +129,14 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 	}
 }
 
+func (r *RealtimeAPIClient) AddOnBoardCallback(ctx context.Context, callback func(mid float64, bids []*Price, asks []*Price)) {
+	r.onBoardCallback = callback
+}
+
+func (r *RealtimeAPIClient) AddOnExecutionCallback(ctx context.Context, callback func([]*Execution)) {
+	r.onExecutionCallback = callback
+}
+
 func (r *RealtimeAPIClient) recv() error {
 	method, msg, _, err := r.rpc.Recv()
 	if err != nil {
@@ -145,14 +155,25 @@ func (r *RealtimeAPIClient) recv() error {
 			if err := json.Unmarshal(channelMsg.Message, boardMsg); err != nil {
 				break
 			}
-			return r.updateBoard(boardMsg)
+			if err := r.updateBoard(boardMsg); err != nil {
+				return err
+			}
+			if r.onBoardCallback != nil {
+				r.onBoardCallback(boardMsg.MidPrice, boardMsg.Bids, boardMsg.Asks)
+			}
+			return nil
 		case "lightning_executions_FX_BTC_JPY":
 			executionMsg := executionMessage{}
 			if err := json.Unmarshal(channelMsg.Message, &executionMsg); err != nil {
 				fmt.Println(err)
 				break
 			}
-			return r.updateExecutions(executionMsg)
+			if err := r.updateExecutions(executionMsg); err != nil {
+				return err
+			}
+			if r.onExecutionCallback != nil {
+				r.onExecutionCallback(executionMsg)
+			}
 		}
 	}
 

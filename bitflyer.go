@@ -1,6 +1,7 @@
 package bitflyer
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/sodefrin/wsjsonrpc"
@@ -17,6 +18,9 @@ type Bitflyer struct{}
 func NewBitflyer() *Bitflyer {
 	return &Bitflyer{}
 }
+
+var ErrInvalidStatusCode = errors.New("invalid status code")
+var ErrInvalidResponse = errors.New("invalid response")
 
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
 	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
