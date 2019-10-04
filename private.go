@@ -58,6 +58,38 @@ func (p *PrivateAPIClient) CancelOrder(id string) error {
 	}, nil)
 }
 
+type Order struct {
+	ID                     int64     `json:"id"`
+	ChildOrderID           string    `json:"child_order_id"`
+	ProductCode            string    `json:"product_code"`
+	Side                   string    `json:"side"`
+	ChildOrderType         string    `json:"child_order_type"`
+	Price                  float64   `json:"price"`
+	AveragePrice           float64   `json:"average_price"`
+	Size                   float64   `json:"size"`
+	ChildOrderState        string    `json:"child_order_state"`
+	ExpireDate             time.Time `json:"expire_date"`
+	ChildOrderDate         time.Time `json:"child_order_date"`
+	ChildOrderAcceptanceID string    `json:"child_order_acceptance_id"`
+	OutstandingSize        float64   `json:"outstanding_size"`
+	CancelSize             float64   `json:"cancel_size"`
+	ExecutedSize           float64   `json:"executed_size"`
+	TotalCommission        float64   `json:"total_commission"`
+}
+
+func (p *PrivateAPIClient) GetOrder(id string) (*Order, error) {
+	orders := []*Order{}
+	err := p.get("/v1/me/getchildorders", map[string]string{"child_order_acceptance_id": id}, &orders)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(orders) != 1 {
+		return nil, fmt.Errorf("%w; order is not single response", ErrInvalidResponse)
+	}
+	return orders[0], nil
+}
+
 type Position struct {
 	Side  string  `json:"side"`
 	Price float64 `json:"price"`
