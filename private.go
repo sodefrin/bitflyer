@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -59,27 +60,27 @@ func (p *PrivateAPIClient) CancelOrder(id string) error {
 }
 
 type Order struct {
-	ID                     int64     `json:"id"`
-	ChildOrderID           string    `json:"child_order_id"`
-	ProductCode            string    `json:"product_code"`
-	Side                   string    `json:"side"`
-	ChildOrderType         string    `json:"child_order_type"`
-	Price                  float64   `json:"price"`
-	AveragePrice           float64   `json:"average_price"`
-	Size                   float64   `json:"size"`
-	ChildOrderState        string    `json:"child_order_state"`
-	ExpireDate             time.Time `json:"expire_date"`
-	ChildOrderDate         time.Time `json:"child_order_date"`
-	ChildOrderAcceptanceID string    `json:"child_order_acceptance_id"`
-	OutstandingSize        float64   `json:"outstanding_size"`
-	CancelSize             float64   `json:"cancel_size"`
-	ExecutedSize           float64   `json:"executed_size"`
-	TotalCommission        float64   `json:"total_commission"`
+	ID                     int64   `json:"id"`
+	ChildOrderID           string  `json:"child_order_id"`
+	ProductCode            string  `json:"product_code"`
+	Side                   string  `json:"side"`
+	ChildOrderType         string  `json:"child_order_type"`
+	Price                  float64 `json:"price"`
+	AveragePrice           float64 `json:"average_price"`
+	Size                   float64 `json:"size"`
+	ChildOrderState        string  `json:"child_order_state"`
+	ExpireDate             string  `json:"expire_date"`
+	ChildOrderDate         string  `json:"child_order_date"`
+	ChildOrderAcceptanceID string  `json:"child_order_acceptance_id"`
+	OutstandingSize        float64 `json:"outstanding_size"`
+	CancelSize             float64 `json:"cancel_size"`
+	ExecutedSize           float64 `json:"executed_size"`
+	TotalCommission        float64 `json:"total_commission"`
 }
 
 func (p *PrivateAPIClient) GetOrder(id string) (*Order, error) {
 	orders := []*Order{}
-	err := p.get("/v1/me/getchildorders", map[string]string{"child_order_acceptance_id": id}, &orders)
+	err := p.get("/v1/me/getchildorders", map[string]string{"product_code": "FX_BTC_JPY", "child_order_acceptance_id": id}, &orders)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +108,11 @@ func (p *PrivateAPIClient) GetPositions() ([]*Position, error) {
 
 func (p *PrivateAPIClient) get(path string, query map[string]string, response interface{}) error {
 	client := http.Client{}
-	q := ""
+	q := []string{}
 	for k, v := range query {
-		q += k + "=" + v
+		q = append(q, k+"="+v)
 	}
-	req, err := http.NewRequest("GET", endpoint+path+"?"+q, nil)
+	req, err := http.NewRequest("GET", endpoint+path+"?"+strings.Join(q, "&"), nil)
 	if err != nil {
 		return err
 	}
