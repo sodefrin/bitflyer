@@ -123,7 +123,7 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 			return nil
 		default:
 			if err := r.recv(); err != nil {
-				fmt.Println(err)
+				return err
 			}
 		}
 	}
