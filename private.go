@@ -60,7 +60,7 @@ func (p *PrivateAPIClient) CancelOrder(id string) error {
 }
 
 func (p *PrivateAPIClient) CancelAllOrder() error {
-	return p.post("/v1/me/cancelallchildorder", &cancelChildOrderParams{
+	return p.post("/v1/me/cancelallchildorders", &cancelChildOrderParams{
 		ProductCode: "FX_BTC_JPY",
 	}, nil)
 }
