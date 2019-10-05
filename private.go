@@ -59,6 +59,12 @@ func (p *PrivateAPIClient) CancelOrder(id string) error {
 	}, nil)
 }
 
+func (p *PrivateAPIClient) CancelAllOrder() error {
+	return p.post("/v1/me/cancelallchildorder", &cancelChildOrderParams{
+		ProductCode: "FX_BTC_JPY",
+	}, nil)
+}
+
 type Order struct {
 	ID                     int64   `json:"id"`
 	ChildOrderID           string  `json:"child_order_id"`
