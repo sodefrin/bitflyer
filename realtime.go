@@ -138,46 +138,53 @@ func (r *RealtimeAPIClient) AddOnExecutionCallback(ctx context.Context, callback
 }
 
 func (r *RealtimeAPIClient) recv() error {
-	method, msg, _, err := r.rpc.Recv()
-	if err != nil {
-		return err
-	}
+	tick := time.NewTicker(time.Minute)
+	defer tick.Stop()
 
-	if method == "channelMessage" {
-		channelMsg := channelMessage{}
-		if err := json.Unmarshal(msg, &channelMsg); err != nil {
+	select {
+	case <-tick.C:
+		return ErrTimeout
+	default:
+		method, msg, _, err := r.rpc.Recv()
+		if err != nil {
 			return err
 		}
 
-		switch channelMsg.Channel {
-		case "lightning_board_FX_BTC_JPY", "lightning_board_snapshot_FX_BTC_JPY":
-			boardMsg := &boardMessage{}
-			if err := json.Unmarshal(channelMsg.Message, boardMsg); err != nil {
-				break
-			}
-			if err := r.updateBoard(boardMsg); err != nil {
+		if method == "channelMessage" {
+			channelMsg := channelMessage{}
+			if err := json.Unmarshal(msg, &channelMsg); err != nil {
 				return err
 			}
-			if r.onBoardCallback != nil {
-				r.onBoardCallback(boardMsg.MidPrice, boardMsg.Bids, boardMsg.Asks)
-			}
-			return nil
-		case "lightning_executions_FX_BTC_JPY":
-			executionMsg := executionMessage{}
-			if err := json.Unmarshal(channelMsg.Message, &executionMsg); err != nil {
-				fmt.Println(err)
-				break
-			}
-			if err := r.updateExecutions(executionMsg); err != nil {
-				return err
-			}
-			if r.onExecutionCallback != nil {
-				r.onExecutionCallback(executionMsg)
+
+			switch channelMsg.Channel {
+			case "lightning_board_FX_BTC_JPY", "lightning_board_snapshot_FX_BTC_JPY":
+				boardMsg := &boardMessage{}
+				if err := json.Unmarshal(channelMsg.Message, boardMsg); err != nil {
+					break
+				}
+				if err := r.updateBoard(boardMsg); err != nil {
+					return err
+				}
+				if r.onBoardCallback != nil {
+					r.onBoardCallback(boardMsg.MidPrice, boardMsg.Bids, boardMsg.Asks)
+				}
+				return nil
+			case "lightning_executions_FX_BTC_JPY":
+				executionMsg := executionMessage{}
+				if err := json.Unmarshal(channelMsg.Message, &executionMsg); err != nil {
+					fmt.Println(err)
+					break
+				}
+				if err := r.updateExecutions(executionMsg); err != nil {
+					return err
+				}
+				if r.onExecutionCallback != nil {
+					r.onExecutionCallback(executionMsg)
+				}
 			}
 		}
+		return nil
 	}
-
-	return nil
 }
 
 func (r *RealtimeAPIClient) updateBoard(msg *boardMessage) error {

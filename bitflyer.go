@@ -21,6 +21,7 @@ func NewBitflyer() *Bitflyer {
 
 var ErrInvalidStatusCode = errors.New("invalid status code")
 var ErrInvalidResponse = errors.New("invalid response")
+var ErrTimeout = errors.New("timeout")
 
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
 	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
