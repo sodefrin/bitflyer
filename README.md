@@ -11,13 +11,21 @@ this liibrary contains
 - private api
 - public api
 
+## Install
+
+```
+$ go get -u github.com/sodefrin/bitflyer
+```
+
+requirements: go1.13
+
 ## Usage
 
 ### realtime api
 
 #### using ticker
 
-```
+```go
 package main
 
 import (
@@ -55,7 +63,7 @@ func main() {
 
 #### using callback
 
-```
+```go
 package main
 
 import (
@@ -93,7 +101,7 @@ func main() {
 
 ### create order
 
-```
+```go
 package main
 
 import (
