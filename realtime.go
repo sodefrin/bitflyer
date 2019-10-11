@@ -3,7 +3,6 @@ package bitflyer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -23,7 +22,7 @@ type RealtimeAPIClient struct {
 }
 
 var maxExecutions = 100000
-var timeoutInterval = time.Second * 3
+var timeoutInterval = time.Minute * 1
 
 func (r *RealtimeAPIClient) GetBoard() (float64, []*Price, []*Price) {
 	bids := []*Price{}
@@ -120,8 +119,8 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 	}
 
 	timer := time.NewTimer(timeoutInterval)
-	eg := errgroup.Group{}
 
+	eg := errgroup.Group{}
 	eg.Go(func() error {
 		for {
 			if err := r.recv(); err != nil {
@@ -132,15 +131,15 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 	})
 
 	eg.Go(func() error {
-		<-timer.C
-		return ErrTimeout
+		select {
+		case <-timer.C:
+			return r.Close()
+		case <-ctx.Done():
+			return r.Close()
+		}
 	})
 
-	if err := eg.Wait(); err != nil {
-		fmt.Println(err)
-		return err
-	}
-	return nil
+	return eg.Wait()
 }
 
 func (r *RealtimeAPIClient) AddOnBoardCallback(ctx context.Context, callback func(mid float64, bids []*Price, asks []*Price)) {
@@ -193,9 +192,8 @@ func (r *RealtimeAPIClient) recv() error {
 }
 
 func (r *RealtimeAPIClient) updateBoard(msg *boardMessage) error {
-	r.board.midPrice = msg.MidPrice
-
 	r.boardMu.Lock()
+	r.board.midPrice = msg.MidPrice
 	for _, v := range msg.Asks {
 		if v.Size == 0 {
 			delete(r.board.asks, v.Price)

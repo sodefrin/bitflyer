@@ -36,7 +36,7 @@ func TestRealtimeAPIClient(t *testing.T) {
 	}
 
 	cancel()
-	if err := eg.Wait(); err != nil {
+	if err := eg.Wait(); err == nil {
 		t.Fatal(err)
 	}
 }
