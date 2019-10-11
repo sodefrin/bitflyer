@@ -181,9 +181,8 @@ func (r *RealtimeAPIClient) recv() error {
 }
 
 func (r *RealtimeAPIClient) updateBoard(msg *boardMessage) error {
-	r.board.midPrice = msg.MidPrice
-
 	r.boardMu.Lock()
+	r.board.midPrice = msg.MidPrice
 	for _, v := range msg.Asks {
 		if v.Size == 0 {
 			delete(r.board.asks, v.Price)
