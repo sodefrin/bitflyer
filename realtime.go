@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sodefrin/wsjsonrpc"
+	"golang.org/x/sync/errgroup"
 )
 
 type RealtimeAPIClient struct {
@@ -117,16 +118,22 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
+	eg := errgroup.Group{}
+	eg.Go(func() error {
+		for {
 			if err := r.recv(); err != nil {
 				return err
 			}
 		}
-	}
+	})
+
+	eg.Go(func() error {
+		<-ctx.Done()
+		r.Close()
+		return nil
+	})
+
+	return eg.Wait()
 }
 
 func (r *RealtimeAPIClient) AddOnBoardCallback(ctx context.Context, callback func(mid float64, bids []*Price, asks []*Price)) {
