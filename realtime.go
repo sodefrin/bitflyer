@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sodefrin/wsjsonrpc"
+	"golang.org/x/sync/errgroup"
 )
 
 type RealtimeAPIClient struct {
@@ -22,6 +23,7 @@ type RealtimeAPIClient struct {
 }
 
 var maxExecutions = 100000
+var timeoutInterval = time.Second * 3
 
 func (r *RealtimeAPIClient) GetBoard() (float64, []*Price, []*Price) {
 	bids := []*Price{}
@@ -117,16 +119,28 @@ func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
+	timer := time.NewTimer(timeoutInterval)
+	eg := errgroup.Group{}
+
+	eg.Go(func() error {
+		for {
 			if err := r.recv(); err != nil {
 				return err
 			}
+			timer.Reset(timeoutInterval)
 		}
+	})
+
+	eg.Go(func() error {
+		<-timer.C
+		return ErrTimeout
+	})
+
+	if err := eg.Wait(); err != nil {
+		fmt.Println(err)
+		return err
 	}
+	return nil
 }
 
 func (r *RealtimeAPIClient) AddOnBoardCallback(ctx context.Context, callback func(mid float64, bids []*Price, asks []*Price)) {
@@ -138,53 +152,44 @@ func (r *RealtimeAPIClient) AddOnExecutionCallback(ctx context.Context, callback
 }
 
 func (r *RealtimeAPIClient) recv() error {
-	tick := time.NewTicker(time.Minute)
-	defer tick.Stop()
+	method, msg, _, err := r.rpc.Recv()
+	if err != nil {
+		return err
+	}
 
-	select {
-	case <-tick.C:
-		return ErrTimeout
-	default:
-		method, msg, _, err := r.rpc.Recv()
-		if err != nil {
+	if method == "channelMessage" {
+		channelMsg := channelMessage{}
+		if err := json.Unmarshal(msg, &channelMsg); err != nil {
 			return err
 		}
 
-		if method == "channelMessage" {
-			channelMsg := channelMessage{}
-			if err := json.Unmarshal(msg, &channelMsg); err != nil {
+		switch channelMsg.Channel {
+		case "lightning_board_FX_BTC_JPY", "lightning_board_snapshot_FX_BTC_JPY":
+			boardMsg := &boardMessage{}
+			if err := json.Unmarshal(channelMsg.Message, boardMsg); err != nil {
+				break
+			}
+			if err := r.updateBoard(boardMsg); err != nil {
 				return err
 			}
-
-			switch channelMsg.Channel {
-			case "lightning_board_FX_BTC_JPY", "lightning_board_snapshot_FX_BTC_JPY":
-				boardMsg := &boardMessage{}
-				if err := json.Unmarshal(channelMsg.Message, boardMsg); err != nil {
-					break
-				}
-				if err := r.updateBoard(boardMsg); err != nil {
-					return err
-				}
-				if r.onBoardCallback != nil {
-					r.onBoardCallback(boardMsg.MidPrice, boardMsg.Bids, boardMsg.Asks)
-				}
-				return nil
-			case "lightning_executions_FX_BTC_JPY":
-				executionMsg := executionMessage{}
-				if err := json.Unmarshal(channelMsg.Message, &executionMsg); err != nil {
-					fmt.Println(err)
-					break
-				}
-				if err := r.updateExecutions(executionMsg); err != nil {
-					return err
-				}
-				if r.onExecutionCallback != nil {
-					r.onExecutionCallback(executionMsg)
-				}
+			if r.onBoardCallback != nil {
+				r.onBoardCallback(boardMsg.MidPrice, boardMsg.Bids, boardMsg.Asks)
+			}
+			return nil
+		case "lightning_executions_FX_BTC_JPY":
+			executionMsg := executionMessage{}
+			if err := json.Unmarshal(channelMsg.Message, &executionMsg); err != nil {
+				break
+			}
+			if err := r.updateExecutions(executionMsg); err != nil {
+				return err
+			}
+			if r.onExecutionCallback != nil {
+				r.onExecutionCallback(executionMsg)
 			}
 		}
-		return nil
 	}
+	return nil
 }
 
 func (r *RealtimeAPIClient) updateBoard(msg *boardMessage) error {
