@@ -112,6 +112,21 @@ func (p *PrivateAPIClient) GetPositions() ([]*Position, error) {
 	return ps, nil
 }
 
+type Collateral struct {
+	Collateral      float64 `json:"collateral"`
+	OpenPositionPnl float64 `json:"open_position_pnl"`
+	KeepRate        float64 `json:"keep_rate"`
+}
+
+func (p *PrivateAPIClient) GetCollateral() (*Collateral, error) {
+	c := &Collateral{}
+	err := p.get("/v1/me/getcollateral", nil, c)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 func (p *PrivateAPIClient) get(path string, query map[string]string, response interface{}) error {
 	client := http.Client{}
 	q := []string{}
