@@ -100,6 +100,12 @@ type Execution struct {
 }
 
 func (r *RealtimeAPIClient) Subscribe(ctx context.Context) error {
+	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
+	if err != nil {
+		return err
+	}
+
+	r.rpc = rpc
 	if err := r.rpc.Send("subscribe", &channelMessage{
 		Channel: "lightning_board_FX_BTC_JPY",
 	}, nil); err != nil {
