@@ -3,8 +3,6 @@ package bitflyer
 import (
 	"errors"
 	"sync"
-
-	"github.com/sodefrin/wsjsonrpc"
 )
 
 const (
@@ -23,13 +21,7 @@ var ErrInvalidStatusCode = errors.New("invalid status code")
 var ErrInvalidResponse = errors.New("invalid response")
 
 func (b *Bitflyer) GetRealtimeAPIClient() (*RealtimeAPIClient, error) {
-	rpc, err := wsjsonrpc.NewJsonRPC("2.0", realtimeEndpoint, origin)
-	if err != nil {
-		return nil, err
-	}
-
 	return &RealtimeAPIClient{
-		rpc:         rpc,
 		boardMu:     &sync.Mutex{},
 		board:       &Board{bids: map[float64]float64{}, asks: map[float64]float64{}},
 		executionMu: &sync.Mutex{},
