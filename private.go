@@ -91,8 +91,8 @@ func (p *PrivateAPIClient) GetOrder(id string) (*Order, error) {
 		return nil, err
 	}
 
-	if len(orders) != 1 {
-		return nil, fmt.Errorf("%w; order is not single response", ErrInvalidResponse)
+	if len(orders) == 0 {
+		return nil, fmt.Errorf("%w; order is not gound", ErrInvalidResponse)
 	}
 	return orders[0], nil
 }
